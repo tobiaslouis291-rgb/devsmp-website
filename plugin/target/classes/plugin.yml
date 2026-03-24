@@ -1,0 +1,12 @@
+name: CasinoBridge
+version: 5.0.0
+main: dev.smp.casinobridge.CasinoBridge
+api-version: 1.20
+depend: [Vault]
+description: Dev-SMP Casino bridge v5
+author: Schmesmalo
+commands:
+  cbridge:
+    description: CasinoBridge commands
+    usage: /cbridge <register|code>
+    aliases: [casinobridge]
