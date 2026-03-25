@@ -77,8 +77,13 @@ app.post('/api/auth/register',(req,res)=>{
   if(existing) return res.status(409).json({error:'Username or MC account already taken'})
   const id=crypto.randomUUID()
   const now=new Date().toISOString()
-  db.prepare('INSERT INTO users (id,username,mc_username,password_hash,salt,balance,created_at,last_login) VALUES (?,?,?,?,?,0,?,?)').run(id,username,mcUsername,passwordHash,salt,now,now)
-  res.json({success:true})
+  try {
+    db.prepare('INSERT INTO users (id,username,mc_username,password_hash,salt,balance,created_at,last_login) VALUES (?,?,?,?,?,0,?,?)').run(id,username,mcUsername,passwordHash,salt,now,now)
+    res.json({success:true})
+  } catch(e) {
+    if(e.message&&e.message.includes('UNIQUE')) return res.status(409).json({error:'Username or MC account already taken'})
+    res.status(500).json({error:'Server error: '+e.message})
+  }
 })
 
 // Login
@@ -221,6 +226,19 @@ app.post('/api/player/:name/balance',auth,(req,res)=>{
   if(!pending.has(key))pending.set(key,[])
   pending.get(key).push({type,amount:safe})
   res.json({success:true,queued:true})
+})
+
+
+// ── Admin ────────────────────────────────────────────────
+// Delete a user by mc_username (admin only, for fixing duplicate registrations)
+app.delete('/api/admin/delete-user',auth,(req,res)=>{
+  const{mcUsername}=req.body
+  if(!mcUsername) return res.status(400).json({error:'mcUsername required'})
+  const user=db.prepare('SELECT id FROM users WHERE mc_username=?').get(mcUsername.toLowerCase())
+  if(!user) return res.status(404).json({error:'User not found'})
+  db.prepare('DELETE FROM sessions WHERE user_id=?').run(user.id)
+  db.prepare('DELETE FROM users WHERE id=?').run(user.id)
+  res.json({success:true,deleted:mcUsername})
 })
 
 // ── Register & Verify codes ──────────────────────────────
