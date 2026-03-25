@@ -2,6 +2,8 @@ const express=require('express'),cors=require('cors'),crypto=require('crypto')
 const Database=require('better-sqlite3')
 const app=express(),PORT=process.env.PORT||3001
 const API_KEY=process.env.CASINO_API_KEY||'change-this-key'
+function hashSync(str){ return crypto.createHash('sha256').update(str).digest('hex') }
+
 app.use(cors({
   origin:'*',
   methods:['GET','POST','PUT','DELETE','OPTIONS'],
@@ -287,10 +289,6 @@ app.post('/api/lobby/:game/:id/join',auth,(req,res)=>{
   setTimeout(()=>resolveRoom(r),900);res.json(r)
 })
 app.delete('/api/lobby/:game/:id',auth,(req,res)=>{rooms.delete(req.params.id);res.json({ok:true})})
-
-function hashSync(str){
-  return crypto.createHash('sha256').update(str).digest('hex')
-}
 
 app.listen(PORT,'0.0.0.0',()=>console.log(`Casino Bridge v5 on port ${PORT}`))
 
