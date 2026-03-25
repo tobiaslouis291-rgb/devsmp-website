@@ -2,7 +2,13 @@ const express=require('express'),cors=require('cors'),crypto=require('crypto')
 const Database=require('better-sqlite3')
 const app=express(),PORT=process.env.PORT||3001
 const API_KEY=process.env.CASINO_API_KEY||'change-this-key'
-app.use(cors({origin:'*'}));app.use(express.json())
+app.use(cors({
+  origin:'*',
+  methods:['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders:['Content-Type','X-API-Key','X-Session-Token','Authorization']
+}))
+app.options('*', cors())
+app.use(express.json())
 const auth=(req,res,next)=>req.headers['x-api-key']===API_KEY?next():res.status(401).json({error:'Unauthorized'})
 
 // ── Database setup ───────────────────────────────────────
@@ -287,3 +293,20 @@ function hashSync(str){
 }
 
 app.listen(PORT,'0.0.0.0',()=>console.log(`Casino Bridge v5 on port ${PORT}`))
+
+// Self-ping every 4 minutes so the server never sleeps on free hosters
+const SELF_URL = process.env.SELF_URL || ''
+if (SELF_URL) {
+  const https = require('https')
+  const http = require('http')
+  setInterval(() => {
+    const url = SELF_URL + '/api/health'
+    const lib = url.startsWith('https') ? https : http
+    lib.get(url, (res) => {
+      console.log('[keep-alive] ping', res.statusCode)
+    }).on('error', (e) => {
+      console.warn('[keep-alive] error:', e.message)
+    })
+  }, 4 * 60 * 1000) // every 4 minutes
+  console.log('[keep-alive] self-ping enabled:', SELF_URL)
+}
